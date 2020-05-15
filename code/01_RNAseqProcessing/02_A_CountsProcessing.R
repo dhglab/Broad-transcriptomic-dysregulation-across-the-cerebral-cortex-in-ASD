@@ -548,7 +548,7 @@ load("data_user/01_RNAseqProcessing/02_A_04_AllDataPreMARS.RData")
 load("data_provided/01_RNAseqProcessing/02_A_05_MARSOutput_subset.RData")
 load("data_provided/01_RNAseqProcessing/02_A_05_MARSOutput_CVCompiled.RData")
 
-pdf(file="output/01_RNAseqProcessing/02_A_06_MARS_CV_plots.pdf",width=16,height=12)
+pdf(file="plots/01_RNAseqProcessing/02_A_06_MARS_CV_plots.pdf",width=16,height=12)
 for(i in c(1:10)){
   
   dat = rbind(cv_coef_list[[i]])
@@ -656,7 +656,7 @@ save(varPart,file="data_user/01_RNAseqProcessing/02_A_07_VarPartResults.RData")
 
 vp <- sortCols( varPart )
 
-pdf(file="output/01_RNAseqProcessing/02_A_07_varPartPlot.pdf",width=18,height=12)
+pdf(file="plots/01_RNAseqProcessing/02_A_07_varPartPlot.pdf",width=18,height=12)
 plotPercentBars( vp[1:10,] )
 plotVarPart(vp)
 dev.off()
