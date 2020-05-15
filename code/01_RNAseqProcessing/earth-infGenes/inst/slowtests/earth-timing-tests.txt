@@ -1,0 +1,90 @@
+Timing Test Results On Earth Version 0.1
+----------------------------------------
+
+NOTE Jan 2008: more recent tests can be found at www.milbo.users.sonic.net.
+
+Tested on a 1.5GHz Dell laptop with the robot arm from Friedman's Fast MARS paper.
+
+These tests were done before I added the multiple response code.  I
+re-defined BETA_CACHE to FALSE when I added the multiple response
+code, so the current code is not as fast as the times below.
+
+N     ncol(x) fast.k  degree     time    gcv             grsq  nterms  npreds
+3000     5       -1      10      4.9     0.0025          0.98    54      4       original
+3000     5       20      10      3.6     0.0024          0.98    59      4       original
+3000     30      -1      10      41      0.0025          0.98    54      4       original
+3000     30      20      10      27      0.0024          0.98    59      4       original
+
+3000     5       -1      10      5       0.0025          0.98    54      4       no -O3 (i.e. -O2)
+3000     5       20      10      3.7     0.0024          0.98    59      4       no -O3 (i.e. -O2)
+3000     30      -1      10      41      0.0025          0.98    54      4       no -O3 (i.e. -O2)
+3000     30      20      10      27      0.0024          0.98    59      4       no -O3 (i.e. -O2)
+
+3000     5       -1      10      4.9     0.0025          0.98    54      4       no INLINE
+3000     5       20      10      3.7     0.0024          0.98    59      4       no INLINE
+3000     30      -1      10      41      0.0025          0.98    54      4       no INLINE
+3000     30      20      10      27      0.0024          0.98    59      4       no INLINE
+
+3000     5       -1      10      6.7     0.0025          0.98    54      4       no BLAS
+3000     5       20      10      4.8     0.0024          0.98    59      4       no BLAS
+3000     30      -1      10      62      0.0025          0.98    54      4       no BLAS
+3000     30      20      10      39      0.0024          0.98    59      4       no BLAS
+
+3000     5       -1      10      5.7     0.0025          0.98    54      4       no BETA_CACHE
+3000     5       20      10      4.2     0.0024          0.98    59      4       no BETA_CACHE
+3000     30      -1      10      49      0.0025          0.98    54      4       no BETA_CACHE
+3000     30      20      10      32      0.0024          0.98    59      4       no BETA_CACHE
+
+3000     5       -1      10      7.6     0.0025          0.98    54      4       no INLINE, no USE_BLAS, no BETA_CACHE
+3000     5       20      10      5.4     0.0024          0.98    59      4       no INLINE, no USE_BLAS, no BETA_CACHE
+3000     30      -1      10      70      0.0025          0.98    54      4       no INLINE, no USE_BLAS, no BETA_CACHE
+3000     30      20      10      44      0.0024          0.98    59      4       no INLINE, no USE_BLAS, no BETA_CACHE
+
+Notes
+-----
+
+1. INLINE appears to make no difference for this model -- is gcc actually doing the inlining?
+   Using the Microsoft compiler, INLINE makes a difference(not shown here)
+
+2. -O3 appears to make no difference for this model
+
+3. fast.k gives less improvement than expected from the Fast MARS paper
+
+4. To see a malloc fail (in RegressAndFix) on a 512 MB machine: test(s, 100000, -1,  1, 5)
+   This probably means that the peak memory use occurs in RegressAndFix,
+   which could be fixed quite easily but I haven't done so yet.
+
+Here is the code used to produce the above table.
+
+robotArm <- function(x) {
+  x. <- with(x, l1 * cos(theta1) - l2 * cos(theta1 + theta2) * cos(phi))
+  y  <- with(x, l1 * sin(theta1) - l2 * sin(theta1 + theta2) * cos(phi))
+  z  <- with(x, l2 * sin(theta2) * sin(phi))
+  sqrt(x.^2 + y^2 + z^2)
+}
+test <- function(s, N, fast.k, degree, ndummy) {
+  set.seed(1)   # for reproducibility
+  gc()
+  l1     <- runif(N, 0, 1)
+  l2     <- runif(N, 0, 1)
+  theta1 <- runif(N, 0, 2 * pi)
+  theta2 <- runif(N, 0, 2 * pi)
+  phi    <- runif(N, -pi/2, pi/2)
+  x <- cbind(l1, l2, theta1, theta2, phi)
+  if (ndummy > 0) for (i in 1:ndummy)
+     x <- cbind(x, runif(N, 0, 1))
+  x <- data.frame(x)
+  e.time <- system.time(e <- earth(x, robotArm(x), degree=degree, nk=201, fast.k=fast.k))
+  options(digits=2)
+  cat(N, "\t", ncol(x), "\t", fast.k, "\t", degree, "\t", e.time[1], "\t",  e$gcv,
+      "\t",  e$grsq, "\t",  length(e$selected.terms), "\t",
+     earth:::get.nused.preds.per.subset(e$dirs, e$selected.terms), "\t", s, "\n")
+}
+s <- "original"
+cat("N     ncol(x) fast.k  degree     time    gcv             grsq   nterms  npreds\n")
+test(s, 3000, -1,  10, 0)
+test(s, 3000, 20,  10, 0)
+test(s, 3000, -1,  10, 25)
+test(s, 3000, 20,  10, 25)
+
+Forden Wales Mar 2007

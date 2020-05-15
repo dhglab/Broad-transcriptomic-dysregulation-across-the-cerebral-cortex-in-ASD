@@ -1,0 +1,27 @@
+
+
+> # test.earth.R
+> # The intention here is to check for porting problems by
+> # building a simple model.
+> # For more comprehensive tests see earth\inst\slowtests.
+> library(earth)
+Loading required package: plotmo
+Loading required package: plotrix
+> options(digits=3)
+> data(trees)
+> earth.mod <- earth(Volume~., data=trees)
+> print(summary(earth.mod))
+Call: earth(formula=Volume~., data=trees)
+
+              coefficients
+(Intercept)         29.060
+h(14.2-Girth)       -3.420
+h(Girth-14.2)        6.230
+h(Height-75)         0.581
+
+Selected 4 of 5 terms, and 2 of 2 predictors 
+Termination condition: RSq changed by less than 0.001 at 5 terms
+Importance: Girth, Height
+Number of terms at each degree of interaction: 1 3 (additive model)
+GCV 11.3    RSS 209    GRSq 0.96    RSq 0.974
+> 
