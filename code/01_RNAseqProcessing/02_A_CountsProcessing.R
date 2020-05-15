@@ -14,6 +14,7 @@ library(doParallel); library(lmerTest)
 
 ## Install custom 'earth' R package to allow infinite genes as input
 devtools::install(paste(wkdir,"code/earth-infGenes",sep=""))
+library(earth)
 
 ##### Pipeline #####
 
