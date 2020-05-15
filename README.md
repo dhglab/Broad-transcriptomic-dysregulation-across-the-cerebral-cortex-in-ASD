@@ -15,8 +15,8 @@ PipelineStage_[OPTIONAL]Dataset_ScriptSection.extension
 
 ### Dataset:
 <ol>
-A. Gene-level<br />
-B. Isoform-level
+A. Gene-level Expression<br />
+B. Isoform-level Expression
 </ol>
   
 If no dataset is indicated, the object applies to both datasets.
