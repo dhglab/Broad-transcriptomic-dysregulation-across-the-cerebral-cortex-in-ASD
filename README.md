@@ -14,10 +14,11 @@ PipelineStage_[OPTIONAL]Dataset_ScriptSection.extension
 05) Neuronal Composition Analysis
 
 ### Dataset:
-
-A) Gene-level
-B) Isoform-level
-
+<ol>
+A. Gene-level<br />
+B. Isoform-level
+</ol>
+  
 If no dataset is indicated, the object applies to both datasets.
 
 ### Script Section:
