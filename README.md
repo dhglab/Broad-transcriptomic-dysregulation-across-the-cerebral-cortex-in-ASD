@@ -1,5 +1,5 @@
-# Transcriptomic-changes-are-pervasive-across-11-cortical-regions-in-ASD
-Code accompanying the ASD Pancortical RNA-seq project manuscript.
+## Transcriptomic-changes-are-pervasive-across-11-cortical-regions-in-ASD
+Code accompanying the manuscript.
 
 ### File Notation:
 
