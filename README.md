@@ -3,7 +3,7 @@ Code accompanying the manuscript.
 
 ### File Notation:
 
-PipelineStage_[OPTIONAL]Dataset_ScriptSection.extension
+PipelineStage_ScriptNumber_[OPTIONAL]Dataset_ScriptSection.extension
 
 ### Pipeline Stages:
 
@@ -12,6 +12,10 @@ PipelineStage_[OPTIONAL]Dataset_ScriptSection.extension
 03) Transcriptomic Regional Identity (TRI) Analysis
 04) Weighted Gene Co-expression Network Analysis (WGCNA)
 05) Neuronal Composition Analysis
+
+### Script Number:
+
+Refers to the script within the pipeline stage. For example, for 'RNA Processing', Script #1 contains FASTQ file processing steps, whereas Script #2 contain quantified counts processing.
 
 ### Dataset:
 <ol>
