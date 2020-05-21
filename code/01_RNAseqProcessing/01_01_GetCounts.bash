@@ -79,9 +79,13 @@ STAR      --runMode                 alignReads \
 
 ### Merge BAMS for Picard Tools QC
 
+cd $output_dir
+
 samtools merge -l 6 -@ 1 -rfp Sample1.bam Sample1L1.bam Sample1L2.bam
 
 ##### (3) Picard Tools QC #####
+
+cd $output_dir
 
 java -Xmx4g -Xms64m -jar picard.jar CollectAlignmentSummaryMetrics \
   R=GRCh37.fa \
@@ -137,6 +141,8 @@ rm Sample1.temp.dup.bam
 rm Sample.bam
 
 ##### (4) RSEM Quantification #####
+
+cd output_dir
 
 samtools merge -l 6 -@ 1 -rfp Sample1.tx.bam Sample1L1.bam Sample1L2.bam
 
