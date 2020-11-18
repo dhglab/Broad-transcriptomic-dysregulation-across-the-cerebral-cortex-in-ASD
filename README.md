@@ -1,4 +1,4 @@
-## Transcriptomic-changes-are-pervasive-across-11-cortical-regions-in-ASD
+## Broad transcriptomic dysregulation across the cerebral cortex in ASD
 Code accompanying the manuscript.
 
 ### File Notation:
@@ -11,7 +11,7 @@ PipelineStage_ScriptNumber_[OPTIONAL]Dataset_ScriptSection.extension
 02) DE Genes and Isoforms
 03) Transcriptomic Regional Identity (TRI) Analysis
 04) Weighted Gene Co-expression Network Analysis (WGCNA)
-05) Neuronal Composition Analysis
+05) Analysis of Regional Variation
 
 ### Script Number:
 
