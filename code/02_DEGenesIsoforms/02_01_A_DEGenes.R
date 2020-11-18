@@ -26,6 +26,8 @@ design=data.frame(mod,datMeta_model[,c(6:(dim(datMeta_model)[2]))])
 corfit <- duplicateCorrelation(datExpr,design,block=datMeta_model$Subject)
 fit <- lmFit(datExpr,design,block=datMeta_model$Subject,correlation=corfit$consensus)
 
+save(fit,file="data_user/02_DEGenesIsoforms/02_01_A_01_lmFit.RData")
+
 ### The remaining steps do not require extensive computing resources.
 
 this_contrast_asd = makeContrasts(contrast=(DxRegASD_BA17 + DxRegASD_BA20_37 + DxRegASD_BA24 + DxRegASD_BA3_1_2_5 +    

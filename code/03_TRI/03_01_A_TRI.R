@@ -8,7 +8,8 @@ options(stringsAsFactors = FALSE)
 wkdir="C:/Users/jillh/Dropbox/GitHub/"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 
-library(ggplot2); library(plyr)
+library(ggplot2); library(plyr); library(gridExtra); library(limma)
+library(ggpubr); library(statmod); library(biomaRt)
 
 ##### Pipeline #####
 
@@ -637,4 +638,461 @@ write.csv(cp_mean_table,file="data_user/03_TRI/03_01_A_02_ASD_v_CTL_TRI_Boostrap
 
 ##### (3) Identify ARI Genes #####
 
+rm(list=ls())
 
+### Obtain genes from the Wilcoxon test (with true samples) that are missing in 95% of permutations
+### It is recommended to run the iterations below in parallel on a high-performance computing cluster.
+  
+### First, extract the permuted genes for each comparison
+  
+idx_list=list(c(1:1000),c(1001:2000),c(2001:3000),c(3001:4000),c(4001:5000),
+             c(5001:6000),c(6001:7000),c(7001:8000),c(8001:9000),c(9001:10000))
+
+for(iter_idx in c(1:10)){
+  
+  idx = idx_list[[as.numeric(iter_idx)]]
+  
+  perm_diff_genes_ctl=list()
+  perm_diff_genes_asd=list()
+  
+  for(i in c(1:length(idx))){
+    if (i%%50 == 0) {print(paste(i,"/1000",sep=""))}
+    load(paste("data_user/03_TRI/03_01_A_01_permutation/TRI_list_permutation",as.character(idx[i]),".RData",sep=""))
+    names(cp_list) <- gsub(" - ","_v_",names(cp_list))
+    for(comp in names(cp_list)){
+      if(i==1){
+        perm_diff_genes_ctl[[comp]] <- list()
+        perm_diff_genes_asd[[comp]] <- list()
+      }
+      tmp=cp_list[[which(names(cp_list)==comp)]]$ASD$data
+      tmp$FDR=p.adjust(tmp$PVal,method="fdr")
+      perm_diff_genes_asd[[comp]][[i]]=rownames(tmp)[which(tmp$FDR < 0.05)]
+      tmp=cp_list[[which(names(cp_list)==comp)]]$CTL$data
+      tmp$FDR=p.adjust(tmp$PVal,method="fdr")
+      perm_diff_genes_ctl[[comp]][[i]]=rownames(tmp)[which(tmp$FDR < 0.05)]
+    }
+  }
+  
+  save(perm_diff_genes_ctl,perm_diff_genes_asd,
+       file=paste("03_01_A_03_permutation_genes/TRI_permutation_genes_Perm",iter_idx,".RData",sep=""))
+
+}
+  
+### now compile based on comparison
+  
+perm_diff_genes_asd_comp <- list()
+perm_diff_genes_ctl_comp <- list()
+
+for(j in c(1:10)){
+  print(j)
+  load(paste("03_01_A_03_permutation_genes/TRI_permutation_genes_Perm",j,".RData",sep=""))
+  for(comp in names(cp_list)){
+    print(comp)
+    if(j==1){
+      perm_diff_genes_asd_comp[[comp]] <- vector(mode="list",length=10000)
+      perm_diff_genes_ctl_comp[[comp]] <- vector(mode="list",length=10000)
+    }
+    perm_diff_genes_asd_comp[[comp]][idx_list[[j]]] = perm_diff_genes_asd[[comp]]
+    perm_diff_genes_ctl_comp[[comp]][idx_list[[j]]] = perm_diff_genes_ctl[[comp]]
+  }
+}
+
+for(comp in names(perm_diff_genes_asd_comp)){
+  perm_diff_genes_asd_comp_single = perm_diff_genes_asd_comp[[comp]]
+  perm_diff_genes_ctl_comp_single = perm_diff_genes_ctl_comp[[comp]]
+  save(perm_diff_genes_asd_comp_single,perm_diff_genes_ctl_comp_single,
+       file=paste("03_01_A_03_permutation_genes/Compiled_TRI_permutation_genes_",comp,".RData",sep=""))
+}
+
+  
+### Now, count the number of true diff genes in the permutations 
+  
+for(iter_idx in c(1:10)){
+  for(dx in c("CTL","ASD")){
+
+    true_diff_genes_ctl=list()
+    true_diff_genes_asd=list()
+    
+    true_diff_genes_count_ctl=list()
+    true_diff_genes_count_asd=list()
+    
+    load("data_user/03_TRI/03_01_A_01_True_TRI_DGE_CompleteList.RData")
+    
+    names(cp_list) <- gsub(" - ","_v_",names(cp_list))
+    
+    comp = names(cp_list)[as.numeric(iter_idx)]
+    dx = as.character(dx)  
+    
+   "Getting True CP Genes"
+    
+    tmp=cp_list[[which(names(cp_list)==comp)]]$ASD$data
+    tmp$FDR=p.adjust(tmp$PVal,method="fdr")
+    true_diff_genes_asd[[comp]]=rownames(tmp)[which(tmp$FDR < 0.05)]
+    tmp=cp_list[[which(names(cp_list)==comp)]]$CTL$data
+    tmp$FDR=p.adjust(tmp$PVal,method="fdr")
+    true_diff_genes_ctl[[comp]]=rownames(tmp)[which(tmp$FDR < 0.05)]
+    
+    "Counting Number of 'True Gene' Occurences in Permutations"
+    
+    true_diff_genes_count_asd[[comp]]=rep(NA,length(true_diff_genes_asd[[comp]]))
+    names(true_diff_genes_count_asd[[comp]]) <- true_diff_genes_asd[[comp]]
+    true_diff_genes_count_ctl[[comp]]=rep(NA,length(true_diff_genes_ctl[[comp]]))
+    names(true_diff_genes_count_ctl[[comp]]) <- true_diff_genes_ctl[[comp]]
+    
+    load(paste("data_user/03_TRI/03_01_A_03_permutation_genes/Compiled_TRI_permutation_genes_",comp,".RData",sep=""))
+    
+    if(dx == "ASD"){
+      
+      print("Counting for ASD")
+      
+      ind=1
+      for(gene in true_diff_genes_asd[[comp]]){
+        count=0
+        if (ind%%50 == 0) {print(paste(ind,"/",length(true_diff_genes_asd[[comp]]),sep=""))}
+        for(i in c(1:length(perm_diff_genes_asd_comp_single))){
+          iter=length(grep(gene,perm_diff_genes_asd_comp_single[[i]]))
+          count=count+iter
+        }
+        true_diff_genes_count_asd[[comp]][gene]=count
+        ind=ind+1
+      }
+      
+      save(true_diff_genes_count_asd,true_diff_genes_asd,
+           file=paste("data_user/03_TRI/03_01_A_03_permutation_genes/TrueGenes_in_PermutedGenes_Compiled_",as.character(comp),"_ASD.RData",sep=""))
+      
+      
+    }else if(dx == "CTL"){
+      
+      print("Counting for CTL")
+      
+      ind=1
+      for(gene in true_diff_genes_ctl[[comp]]){
+        count=0
+        if (ind%%50 == 0) {print(paste(ind,"/",length(true_diff_genes_ctl[[comp]]),sep=""))}
+        for(i in c(1:length(perm_diff_genes_ctl_comp_single))){
+          iter=length(grep(gene,perm_diff_genes_ctl_comp_single[[i]]))
+          count=count+iter
+        }
+        true_diff_genes_count_ctl[[comp]][gene]=count
+        ind=ind+1
+      }
+      
+      save(true_diff_genes_count_ctl,true_diff_genes_ctl,
+           file=paste("data_user/03_TRI/03_01_A_03_permutation_genes/TrueGenes_in_PermutedGenes_Compiled_",as.character(comp),"_CTL.RData",sep=""))
+    } 
+  }
+}
+  
+### Combine CTL and ASD data
+  
+  true_diff_genes_ctl_all <- vector(mode="list",length=55)
+  true_diff_genes_asd_all <- vector(mode="list",length=55)
+  
+  true_diff_genes_count_ctl_all <- vector(mode="list",length=55)
+  true_diff_genes_count_asd_all <- vector(mode="list",length=55)
+  
+  load("data_user/03_TRI/03_01_A_01_True_TRI_DGE_CompleteList.RData")
+  
+  names(cp_list) <- gsub(" - ","_v_",names(cp_list))
+  
+  names(true_diff_genes_ctl_all) <- names(true_diff_genes_asd_all) <- names(cp_list)
+  names(true_diff_genes_count_ctl_all) <- names(true_diff_genes_count_asd_all) <- names(cp_list)
+  
+  for(comp in names(cp_list)){
+    print(comp)
+    for(dx in c("ASD","CTL")){
+      print(dx)
+      if(dx == "ASD"){
+        
+        load(paste("data_user/03_TRI/03_01_A_03_permutation_genes/TrueGenes_in_PermutedGenes_Compiled_",comp,"_ASD.RData",sep=""))
+        
+        true_diff_genes_asd_all[[comp]] <- true_diff_genes_asd[[comp]]        
+        true_diff_genes_count_asd_all[[comp]] <- true_diff_genes_count_asd[[comp]]
+        
+      }else if(dx == "CTL"){
+        
+        load(paste("data_user/03_TRI/03_01_A_03_permutation_genes/TrueGenes_in_PermutedGenes_Compiled_",comp,"_CTL.RData",sep=""))
+        
+        true_diff_genes_ctl_all[[comp]] <- true_diff_genes_ctl[[comp]]        
+        true_diff_genes_count_ctl_all[[comp]] <- true_diff_genes_count_ctl[[comp]]
+        
+      }
+    }
+  }
+  
+  save(true_diff_genes_count_asd_all,true_diff_genes_count_ctl_all,
+       true_diff_genes_asd_all,true_diff_genes_ctl_all,
+       file="data_user/03_TRI/03_01_A_03_TrueGenes_in_PermutedGenes_All_Compiled.RData")
+
+### Now, make a histogram for every comparison of the number of times a 'true' gene was in a scrambled permutation
+
+rm(list=ls())
+
+load("data_user/03_TRI/03_01_A_03_TrueGenes_in_PermutedGenes_All_Compiled.RData")
+  
+pdf(file="plots/03_TRI/03_01_A_03_Permutation-Count-Density.pdf",width=10)
+
+par(mfrow=c(1,2))
+for(comp in names(true_diff_genes_asd_all)){
+  if(length(true_diff_genes_count_asd_all[[comp]]) > 0){
+    plot(density(true_diff_genes_count_asd_all[[comp]],bw=100),main=paste(comp,"; ASD",sep=""))
+    abline(v=500,col="red")
+  }else{
+    plot(c(0, 1), c(0, 1), ann = F, bty = 'n', type = 'n', xaxt = 'n', yaxt = 'n')
+    text(x = 0.5, y = 0.5, paste(comp,"; \n No True Diff Genes; \n ASD",sep=""), 
+         cex = 1, col = "black")
+  }
+  if(length(true_diff_genes_count_ctl_all[[comp]]) > 0){
+    plot(density(true_diff_genes_count_ctl_all[[comp]],bw=100),main=paste(comp,"; CTL",sep=""))
+    abline(v=500,col="red")
+  }else{
+    plot(c(0, 1), c(0, 1), ann = F, bty = 'n', type = 'n', xaxt = 'n', yaxt = 'n')
+    text(x = 0.5, y = 0.5, paste(comp,"; \n No True Diff Genes; \n CTL",sep=""), 
+         cex = 1, col = "black")
+  }
+}
+
+dev.off()
+
+### Choose filter of 5% (highly conservative)
+### Filer is for a gene to be kept as a 'true' cp gene, from perm test; needs to be present in less than 500 out of the 10,000 perms
+
+true_diff_genes_final_asd=list()
+true_diff_genes_final_ctl=list()
+
+for(comp in names(true_diff_genes_asd_all)){
+  idx = which(true_diff_genes_count_asd_all[[comp]] < 500)
+  true_diff_genes_final_asd[[comp]] = true_diff_genes_asd_all[[comp]][idx]
+  idx = which(true_diff_genes_count_ctl_all[[comp]] < 500)
+  true_diff_genes_final_ctl[[comp]] = true_diff_genes_ctl_all[[comp]][idx]
+}
+
+save(true_diff_genes_final_asd,true_diff_genes_final_ctl,file="data_user/03_TRI/03_01_A_03_All_ARI_Genes.RData")
+
+### Next, get gene expression profiles of ARI genes
+
+### First, load relevant data
+
+ttable = read.csv("data_user/03_TRI/03_01_A_01_Permutation_RegComp-TTable.csv") ## permutation results
+load("data_user/03_TRI/03_01_A_01_True_TRI_DGE_ASD_v_Control.RData") ## DGE results for TRI analysis with true samples
+
+### Get reference to match regions to cortical lobules
+
+lobe_match=data.frame("Contrast"=names(diff_list),
+                      "Lobe_Contrast"=rep(NA,length(names(diff_list))))
+
+frontal = c("BA9","BA4-6","BA24","BA44-45")
+parietal = c("BA3-1-2-5","BA7","BA39-40")
+temporal = c("BA38","BA20-37","BA41-42-22")
+occipital = c("BA17")
+
+for(comp in lobe_match[,1]){
+  reg1=strsplit(comp,split=" - ")[[1]][1]
+  reg2=strsplit(comp,split=" - ")[[1]][2]
+  if( ((reg1 %in% frontal) & (reg2 %in% parietal)) | ((reg2 %in% frontal) & (reg1 %in% parietal)) ){
+    lobe_match$Lobe_Contrast[which(lobe_match$Contrast==comp)]="Frontal - Parietal"
+  }else if( ((reg1 %in% frontal) & (reg2 %in% temporal)) | ((reg2 %in% frontal) & (reg1 %in% temporal)) ){
+    lobe_match$Lobe_Contrast[which(lobe_match$Contrast==comp)]="Frontal - Temporal"
+  }else if( ((reg1 %in% frontal) & (reg2 %in% occipital)) | ((reg2 %in% frontal) & (reg1 %in% occipital)) ){
+    lobe_match$Lobe_Contrast[which(lobe_match$Contrast==comp)]="Occipital - Frontal"
+  }else if( ((reg1 %in% frontal) & (reg2 %in% frontal)) ){
+    lobe_match$Lobe_Contrast[which(lobe_match$Contrast==comp)]="Frontal - Frontal"
+  }else if( ((reg1 %in% temporal) & (reg2 %in% occipital)) | ((reg2 %in% temporal) & (reg1 %in% occipital)) ){
+    lobe_match$Lobe_Contrast[which(lobe_match$Contrast==comp)]="Occipital - Temporal"
+  }else if( ((reg1 %in% parietal) & (reg2 %in% occipital)) | ((reg2 %in% parietal) & (reg1 %in% occipital)) ){
+    lobe_match$Lobe_Contrast[which(lobe_match$Contrast==comp)]="Occipital - Parietal"
+  }else if( ((reg1 %in% parietal) & (reg2 %in% temporal)) | ((reg2 %in% parietal) & (reg1 %in% temporal)) ){
+    lobe_match$Lobe_Contrast[which(lobe_match$Contrast==comp)]="Parietal - Temporal"
+  }else if( ((reg1 %in% parietal) & (reg2 %in% parietal)) ){
+    lobe_match$Lobe_Contrast[which(lobe_match$Contrast==comp)]="Parietal - Parietal"
+  }else if( ((reg1 %in% temporal) & (reg2 %in% temporal)) ){
+    lobe_match$Lobe_Contrast[which(lobe_match$Contrast==comp)]="Temporal - Temporal"
+  }
+}
+
+### from this point on - just look at the regional comparisons significantly attenuated in ASD
+
+sig_comps = ttable$Comparison[which(ttable$Perm_PVal < 0.05)]
+names(sig_comps) = rep("CTL",length(sig_comps))
+sig_comps = gsub(" - ","_v_",sig_comps)
+
+sig_comp_list_ctl = true_diff_genes_final_ctl[which(names(true_diff_genes_final_ctl) %in% sig_comps[which(names(sig_comps)=="CTL")])] 
+
+### remove any genes from the controls that are present in asd
+
+sig_comp_list_ctl_unique = list()
+
+for(comp in names(sig_comp_list_ctl)){
+  print(comp)
+  rm = true_diff_genes_final_asd[[comp]][which(true_diff_genes_final_asd[[comp]] %in% sig_comp_list_ctl[[comp]])]
+  print(length(rm))
+  if(length(rm)==0){
+    sig_comp_list_ctl_unique[[comp]]=sig_comp_list_ctl[[comp]]
+  }else{
+    sig_comp_list_ctl_unique[[comp]]=sig_comp_list_ctl[[comp]][-match(rm,sig_comp_list_ctl[[comp]])]
+  }
+}
+
+sig_comp_list_ctl = sig_comp_list_ctl_unique
+
+names(sig_comp_list_ctl) <- paste(names(sig_comp_list_ctl),"_CTL-gt-ASD",sep="")
+sig_comp_list = sig_comp_list_ctl
+
+save(sig_comp_list,file="data_user/03_TRI/03_01_A_03_ARI_genes_from_RegComparisons_Attenuated_inASD.RData")
+
+### determine which region each comparison is expressed in
+
+cp_genes = list()
+
+load("data_provided/03_TRI/03_01_A_AllProcessedData_wModelMatrix.RData")
+load("data_provided/03_TRI/03_01_A_RegressedExpression_TRI.RData")
+load("data_provided/03_TRI/03_01_A_01_Permutation_Index.RData")
+
+for(comp in names(sig_comp_list)){
+    
+  asd_att_genes = sig_comp_list[[comp]]
+  
+  idx_name = gsub("_CTL-gt-ASD","",comp)
+  idx_name = gsub("_v_"," - ",idx_name)
+  
+  reg1 = strsplit(comp,split="_")[[1]][1]
+  reg2 = strsplit(comp,split="_")[[1]][3]
+  
+  asd_att_expr = datExpr.reg[which(rownames(datExpr.reg) %in% asd_att_genes),idx_comp_all[[idx_name]]]
+  datMeta_asd_att = datMeta[idx_comp_all[[idx_name]],]
+  datMeta_asd_att$Dx_Reg = paste(datMeta_asd_att$Diagnosis,datMeta_asd_att$region,sep="_")
+  
+  ## sort the genes which are more highly expressed in reg1 or reg2
+  
+  count=rep(NA,length(asd_att_genes))
+  names(count) <- rownames(asd_att_expr)
+  for(gene in rownames(asd_att_expr)){
+    avg_1=median(asd_att_expr[gene,which(datMeta_asd_att$Dx_Reg==paste("CTL",reg1,sep="_"))])
+    avg_2=median(asd_att_expr[gene,which(datMeta_asd_att$Dx_Reg==paste("CTL",reg2,sep="_"))])
+    if(avg_1 > avg_2){
+      count[gene]=reg1
+    }else{
+      count[gene]=reg2
+    }
+  }
+  
+  reg1_genes = names(count)[which(count==reg1)]
+  reg2_genes = names(count)[which(count==reg2)]
+  cp_genes[[comp]][[reg1]]=reg1_genes
+  cp_genes[[comp]][[reg2]]=reg2_genes
+    
+}
+  
+
+save(cp_genes,file="data_user/03_TRI/03_01_A_03_ARI_genes_from_RegComparisons_Attenuated_inASD_RegSorted.RData")
+
+### Sort ARI genes into relevant groups: increasing in control expression from anterior to posterior, and vice versa
+### Obtain two 'interesting groups': BA17 and BA39-40 expressed genes v. all other regions
+
+cp_att_groups = list("BA17_BA39-40"=rep(NA,2),"Other_Cortical_Regions"=rep(NA,2))
+
+for(comp in names(cp_genes)){
+  regs = names(cp_genes[[comp]])
+  for(reg in regs){
+    if(reg == "BA17" | reg == "BA39-40"){
+      cp_att_groups[["BA17_BA39-40"]] = c(cp_att_groups[["BA17_BA39-40"]],cp_genes[[comp]][[reg]])
+    }else{
+      cp_att_groups[["Other_Cortical_Regions"]] = c(cp_att_groups[["Other_Cortical_Regions"]],cp_genes[[comp]][[reg]])
+    }
+  }
+}
+
+cp_att_groups[["BA17_BA39-40"]] = cp_att_groups[["BA17_BA39-40"]][!duplicated(cp_att_groups[["BA17_BA39-40"]])]
+cp_att_groups[["BA17_BA39-40"]] = cp_att_groups[["BA17_BA39-40"]][-which(is.na(cp_att_groups[["BA17_BA39-40"]])==TRUE)]
+
+cp_att_groups[["Other_Cortical_Regions"]] = cp_att_groups[["Other_Cortical_Regions"]][!duplicated(cp_att_groups[["Other_Cortical_Regions"]])]
+cp_att_groups[["Other_Cortical_Regions"]] = cp_att_groups[["Other_Cortical_Regions"]][-which(is.na(cp_att_groups[["Other_Cortical_Regions"]])==TRUE)]
+
+### remove any intersecting genes between the two groups - these are not the ones we are interested in (likely BA39-40 and another region v. highly anterior region)
+
+inter = intersect(cp_att_groups[["BA17_BA39-40"]],cp_att_groups[["Other_Cortical_Regions"]])
+cp_att_groups[["BA17_BA39-40"]] = cp_att_groups[["BA17_BA39-40"]][-which(cp_att_groups[["BA17_BA39-40"]] %in% inter)]
+cp_att_groups[["Other_Cortical_Regions"]] = cp_att_groups[["Other_Cortical_Regions"]][-which(cp_att_groups[["Other_Cortical_Regions"]] %in% inter)]
+
+all_att_genes = c(cp_att_groups[[1]],cp_att_groups[[2]])
+
+### finally, double check that median of genes isn't higher in the other group - remove any that don't comply
+
+reg1=names(cp_att_groups)[1]
+reg2=names(cp_att_groups)[2]
+
+count=rep(NA,length(all_att_genes))
+names(count) <- rownames(all_att_genes)
+for(gene in all_att_genes){
+  avg_1=median(datExpr.reg[gene,which( datMeta$Diagnosis == "CTL" & (datMeta$region == "BA17" | datMeta$region == "BA39-40" ))])
+  avg_2=median(datExpr.reg[gene,which( datMeta$Diagnosis == "CTL" & datMeta$region != "BA17" & datMeta$region != "BA39-40" )])
+  if(avg_1 > avg_2){
+    count[gene]=reg1
+  }else{
+    count[gene]=reg2
+  }
+}
+
+plot <- table(count) 
+
+#count
+#BA17_BA39-40 Other_Cortical_Regions 
+#2094                   1851 
+
+reg1_genes = names(count)[which(count==reg1)] # 2094
+reg2_genes = names(count)[which(count==reg2)] # 1851
+
+length(cp_att_groups[[reg1]]) # 2037
+length(cp_att_groups[[reg2]]) # 1908
+
+reg1_keep = intersect(reg1_genes,cp_att_groups[[reg1]]) # 1881
+reg2_keep = intersect(reg2_genes,cp_att_groups[[reg2]]) # 1695
+
+### finalize list
+
+cp_att_groups[[reg1]] = reg1_keep
+cp_att_groups[[reg2]] = reg2_keep
+all_att_genes = c(cp_att_groups[[reg1]],cp_att_groups[[reg2]])
+
+### get DE for these genes in each group in ctls
+
+mod=model.matrix(~ 0 + DxReg+SeqBatch+Sex+Ancestry,data=datMeta_model)
+design=data.frame(mod,datMeta_model[,c(6:(dim(datMeta_model)[2]))])
+
+load("data_user/02_DEGenesIsoforms/02_01_A_01_lmFit.RData")
+
+this_contrast_cp_att = makeContrasts(contrast=(DxRegCTL_BA17 + DxRegCTL_BA39_40)/2 -         
+                                       (DxRegCTL_BA20_37 + DxRegCTL_BA24 + DxRegCTL_BA3_1_2_5 + DxRegCTL_BA38 +          
+                                          DxRegCTL_BA4_6 + DxRegCTL_BA41_42_22 + DxRegCTL_BA44_45 +      
+                                          DxRegCTL_BA7 + DxRegCTL_BA9)/9, levels=design)
+
+this_contrast_cp_att <- data.frame(this_contrast_cp_att[match(colnames(fit$coefficients),rownames(this_contrast_cp_att)),])
+
+fit2 = contrasts.fit(fit, this_contrast_cp_att)
+fit3= eBayes(fit2,trend = T, robust = T)
+tt_cp_att= topTable(fit3, coef=1, number=Inf, sort.by = 'none')
+
+tt_cp_att = tt_cp_att[match(all_att_genes,rownames(tt_cp_att)),]
+tt_contrast_cp_att = tt_cp_att[,c(1,5)]
+
+### get the external_gene_names as well and make a .csv with these genes and DGE info.
+
+ensembl = useMart(biomart="ENSEMBL_MART_ENSEMBL",dataset="hsapiens_gene_ensembl",host = "grch37.ensembl.org")
+# get hg19 annotation
+
+identifier <- "ensembl_gene_id"
+getinfo <- c("ensembl_gene_id","external_gene_name","hgnc_symbol","gene_biotype",
+             "chromosome_name","strand","band","start_position","end_position","description")
+
+reg1 = rep(names(cp_att_groups)[1],length(cp_att_groups[[1]]))
+reg2 = rep(names(cp_att_groups)[2],length(cp_att_groups[[2]]))
+
+tmp = data.frame("ensembl_gene_id"=all_att_genes,"group"=c(reg1,reg2))
+tmp = data.frame(cbind(tmp,tt_cp_att[match(tmp$ensembl_gene_id,rownames(tt_cp_att)),c(1,3,4,5)]))
+colnames(tmp)[3] = "logFC_BA17_BA39_40_minus_Other_Cortical_Regions"  
+
+geneDat <- getBM(attributes = getinfo, filters=identifier, values = substr(tmp$ensembl_gene_id,1,15),mart=ensembl)
+geneDat = geneDat[match(substr(tmp$ensembl_gene_id,1,15),geneDat$ensembl_gene_id),]
+tmp = data.frame(cbind(tmp,geneDat[,-1]))
+
+write.csv(tmp,file="data_user/03_TRI/03_01_A_03_Annotated_ARI_Gene_InterestingGroups.csv")

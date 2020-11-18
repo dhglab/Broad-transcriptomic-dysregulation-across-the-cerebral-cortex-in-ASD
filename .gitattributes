@@ -7,3 +7,5 @@ data_provided/02_DEGenesIsoforms/02_01_A_RegressedExpression.RData filter=lfs di
 data_provided/02_DEGenesIsoforms/02_01_B_AllProcessedData_wModelMatrix.RData filter=lfs diff=lfs merge=lfs -text
 data_provided/03_TRI/03_01_A_AllProcessedData_wModelMatrix.RData filter=lfs diff=lfs merge=lfs -text
 data_provided/03_TRI/03_01_A_RegressedExpression_TRI.RData filter=lfs diff=lfs merge=lfs -text
+data_provided/03_TRI/03_01_B_AllProcessedData_wModelMatrix.RData filter=lfs diff=lfs merge=lfs -text
+data_provided/03_TRI/03_01_B_RegressedExpression_TRI.RData filter=lfs diff=lfs merge=lfs -text
