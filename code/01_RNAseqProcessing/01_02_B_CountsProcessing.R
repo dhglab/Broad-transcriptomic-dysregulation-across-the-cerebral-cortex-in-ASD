@@ -35,7 +35,7 @@ library(earth)
 
 ### Get gene-level dataset genes
 
-load("data_provided/02_DEGenesIsoforms/02_01_A_01_AllProcessedData_wModelMatrix.RData")
+load("data_provided/02_DEGenesIsoforms/02_01_A_AllProcessedData_wModelMatrix.RData")
 genes = substr(rownames(datExpr),1,15)
 rm(datExpr,datMeta,datMeta_model,datSeq,datSeq_numeric,topPC,rsem_gene_effLen)
 
@@ -77,13 +77,13 @@ geneAnno <- getBM(attributes = getinfo,filters=c("ensembl_transcript_id"),
                    values=substr(rownames(cpm),1,15),mart=mart)
 
 isos_keep = rownames(cpm)[which(substr(rownames(cpm),1,15) %in% geneAnno$ensembl_transcript_id)]
-match_genes = geneAnno1$ensembl_gene_id[match(substr(isos_keep,1,15),geneAnno$ensembl_transcript_id)]
+match_genes = geneAnno$ensembl_gene_id[match(substr(isos_keep,1,15),geneAnno$ensembl_transcript_id)]
 isos_keep = isos_keep[which(match_genes %in% genes)]
 length(isos_keep)
 
 rsem_tx = rsem_tx[match(isos_keep,rownames(rsem_tx)),]
 rsem_transcript_effLen=rsem_transcript_effLen[match(isos_keep,names(rsem_transcript_effLen))]
-geneAnno = geneAnno[match(isos_keep,geneAnno$ensembl_transcript_id),]
+geneAnno = geneAnno[match(substr(isos_keep,1,15),geneAnno$ensembl_transcript_id),]
 
 rm(cpm,length,keep,short_remove,idx,idx_remove,genes,isos_keep,match_genes,mart,getinfo)
 
