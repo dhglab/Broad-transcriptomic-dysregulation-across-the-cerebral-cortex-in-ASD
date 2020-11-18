@@ -16,7 +16,7 @@ library(limma); library(statmod); library(WGCNA)
 
 ##### (1) Identify DE genes for covariates #####
 
-load("data_provided/02_DEGenesIsoforms/02_01_A_AllProcessedData_wModelMatrix.RData")
+load("data_provided/02_DEGenesIsoforms/02_01_A_AllProcessedData_wModelMatrix.RData") ### produced by 01_02_A_CountsProcessing.R, section 6
 
 mod=model.matrix(~ 0 + DxReg+SeqBatch+Sex+Ancestry,data=datMeta_model)
 design=data.frame(mod,datMeta_model[,c(6:(dim(datMeta_model)[2]))])

@@ -29,7 +29,7 @@ library(earth)
 
 ##### (1) Gene Filtering #####
 
-load("data_provided/01_RNAseqProcessing/01_02_A_01_RawData.RData")
+load("data_provided/01_RNAseqProcessing/01_02_A_01_RawData.RData") # counts and metadata
 
 ### 12 NCTL samples (Angelman Syndrome, CNV chr3p, and Epilepsy patients)
 ### Keep these samples only for the gene filtering step

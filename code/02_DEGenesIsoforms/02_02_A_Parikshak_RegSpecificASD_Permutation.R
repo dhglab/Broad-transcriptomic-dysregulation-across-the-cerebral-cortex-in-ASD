@@ -24,8 +24,8 @@ SIGTEST=FALSE
 
 if(PERM==TRUE){
   
-  load("data_provided/02_DEGenesIsoforms/02_01_A_AllProcessedData_wModelMatrix.RData")
-  load("data_provided/02_DEGenesIsoforms/02_01_A_RegressedExpression.RData")
+  load("data_provided/02_DEGenesIsoforms/02_01_A_AllProcessedData_wModelMatrix.RData") ### produced by 01_02_A_CountsProcessing.R, section 6
+  load("data_provided/02_DEGenesIsoforms/02_01_A_RegressedExpression.RData") ### produced by 01_02_A_CountsProcessing.R, section 8
   
   ### Run 10,001 permutations (permutation=i) as below:
   ### Rscript 02_02_A_Parikshak_RegSpecificASD_Permutation.R i

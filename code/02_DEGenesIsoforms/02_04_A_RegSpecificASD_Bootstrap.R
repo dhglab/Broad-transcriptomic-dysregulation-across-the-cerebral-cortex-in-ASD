@@ -9,9 +9,11 @@ library(ggplot2); library(reshape2); library(gridExtra); library(grid); library(
 wkdir="C:/Users/jillh/Dropbox/GitHub/"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 
-load("data_provided/02_DEGenesIsoforms/02_01_A_AllProcessedData_wModelMatrix.RData")
-load("data_provided/02_DEGenesIsoforms/02_01_A_RegressedExpression.RData")
+load("data_provided/02_DEGenesIsoforms/02_01_A_AllProcessedData_wModelMatrix.RData") ### produced by 01_02_A_CountsProcessing.R, section 6
+load("data_provided/02_DEGenesIsoforms/02_01_A_RegressedExpression.RData") ### produced by 01_02_A_CountsProcessing.R, section 8
+
 load("data_provided/02_DEGenesIsoforms/02_04_A_WholeCortex_DGE_logFC.RData")
+### logFC of whole-cortex ASD effect, extracted from '02_01_A_01_WholeCortexFullDGE.RData' produced by 02_01_A_DEGenes.R, section 1
 
 boot=TRUE
 compile=FALSE
