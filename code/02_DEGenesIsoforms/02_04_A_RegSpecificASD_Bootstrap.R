@@ -7,7 +7,7 @@ options(stringsAsFactors = FALSE)
 library(ggplot2); library(reshape2); library(gridExtra); library(grid); library(limma); library(statmod)
 
 wkdir="C:/Users/jillh/Dropbox/GitHub/"
-setwd(paste(wkdir,"Transcriptomic-changes-are-pervasive-across-11-cortical-regions-in-ASD/",sep=""))
+setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 
 load("data_provided/02_DEGenesIsoforms/02_01_A_AllProcessedData_wModelMatrix.RData")
 load("data_provided/02_DEGenesIsoforms/02_01_A_RegressedExpression.RData")

@@ -5,7 +5,7 @@
 options(stringsAsFactors = FALSE)
 
 wkdir="C:/Users/jillh/Dropbox/GitHub/"
-setwd(paste(wkdir,"Transcriptomic-changes-are-pervasive-across-11-cortical-regions-in-ASD/",sep=""))
+setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 
 library(limma); library(edgeR); library(cqn); library(biomaRt)
 library(WGCNA); library(devtools); library(paralell)
