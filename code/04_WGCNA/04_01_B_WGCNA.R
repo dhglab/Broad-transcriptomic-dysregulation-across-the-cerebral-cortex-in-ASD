@@ -19,6 +19,7 @@ tdatExpr=t(datExpr.reg)
 ###(1) Perform WGCNA
 ###(2) Compare isoform modules to gene modules
 ###(3) Identify module associations with covariates
+###(4) Gene biotype permutation 
 
 ##### (1) Perform WGCNA #####
 
@@ -558,3 +559,332 @@ assoc_table_list_iso = list("WC_P"=assoc_table_p_wc,"WC_B"=assoc_table_beta_wc,
                             "Dup15Reg_P"=assoc_table_p_dup15Reg,"Dup15Reg_B"=assoc_table_beta_dup15Reg)
 
 save(assoc_table_list_iso,file="data_user/04_WGCNA/04_01_B_03_isoME_assoc_table.RData")
+
+##### (4) Gene biotype permutation #####
+
+rm(list=ls())
+
+allowWGCNAThreads()
+
+wkdir="C:/Users/jillh/Dropbox/GitHub/"
+load("data_provided/04_WGCNA/04_01_B_AllProcessedData_wModelMatrix.RData") ### produced by 01_02_B_CountsProcessing.R, section 6
+load("data_provided/04_WGCNA/04_01_B_RegressedExpression.RData") ### produced by 01_02_B_CountsProcessing.R, section 8
+setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
+
+load("data_user/04_WGCNA/04_01_B_02_isoformModules_filtered.RData")
+### or: load("data_provided/04_WGCNA/04_01_B_02_isoformModules_filtered.RData")
+
+### Count gene biotypes in modules
+  
+RNA_types = list()
+all_genes = read.csv("main_datasets/B_IsoformLevel/AllIsoformsByModule_wDTE_wAnnotation.csv")
+
+for(mod in module_key_iso$Module_Name[-1]){
+  print(mod)
+  tmp = all_genes[which(all_genes$WGCNA_module==mod),]
+  RNA_types[[mod]]$length = nrow(tmp)
+  RNA_types[[mod]]$types = table(tmp$gene_biotype)
+}
+
+uniq_types = NA
+
+for(i in c(1:length(names(RNA_types)))){
+  tmp_types = names(RNA_types[[i]]$types)
+  uniq_types = c(uniq_types,tmp_types)
+  uniq_types = uniq_types[!duplicated(uniq_types)]
+}
+
+uniq_types = uniq_types[-1]
+
+RNA_type_table = matrix(NA,nrow=length(names(RNA_types)),ncol=length(uniq_types))
+rownames(RNA_type_table) = module_key_iso$Module_Name[-1]
+colnames(RNA_type_table) = uniq_types
+
+for(i in c(1:length(uniq_types))){
+  for(j in c(1:length(names(RNA_types)))){
+    mod = rownames(RNA_type_table)[j]
+    type = colnames(RNA_type_table)[i]
+    if( type %in% names(RNA_types[[mod]]$types) ){
+      RNA_type_table[j,i] = RNA_types[[mod]]$types[which(names(RNA_types[[mod]]$types) == type)]
+    }else{
+      RNA_type_table[j,i] = 0
+    }
+  }
+}
+
+RNA_type_table_true = RNA_type_table
+save(uniq_types,RNA_type_table_true,file="data_user/04_WGCNA/04_01_B_04_RNA_biotypes_trueCount.RData")
+  
+### Run permutation analysis
+### make random module assignments
+  
+for(iter in c(1:10000)){
+  
+  set.seed(as.numeric(iter))
+  
+  RNA_types = list()
+  all_genes = read.csv("main_datasets/B_IsoformLevel/AllIsoformsByModule_wDTE_wAnnotation.csv")
+  all_genes$WGCNA_module = sample(all_genes$WGCNA_module,replace=FALSE,size=nrow(all_genes))
+  
+  for(mod in module_key_iso$Module_Name[-1]){
+    print(mod)
+    tmp = all_genes[which(all_genes$WGCNA_module==mod),]
+    RNA_types[[mod]]$length = nrow(tmp)
+    RNA_types[[mod]]$types = table(tmp$gene_biotype)
+  }
+  
+  RNA_type_table = matrix(NA,nrow=length(module_key_iso$Module_Name[-1]),ncol=length(uniq_types))
+  rownames(RNA_type_table) = module_key_iso$Module_Name[-1]
+  colnames(RNA_type_table) = uniq_types
+  
+  for(i in c(1:length(uniq_types))){
+    for(j in c(1:length(module_key_iso$Module_Name[-1]))){
+      mod = rownames(RNA_type_table)[j]
+      type = colnames(RNA_type_table)[i]
+      if( type %in% names(RNA_types[[mod]]$types) ){
+        RNA_type_table[j,i] = RNA_types[[mod]]$types[which(names(RNA_types[[mod]]$types) == type)]
+      }else{
+        RNA_type_table[j,i] = 0
+      }
+    }
+  }
+  
+  RNA_type_table_perm = RNA_type_table
+  save(RNA_type_table_perm,file=paste("data_user/04_WGCNA/04_01_B_04_permutations/RNA_biotypes_perm",iter,".RData",sep=""))
+  
+}
+
+### Compile results
+  
+perm_dist = list()
+
+for(i in c(1:10000)){
+  load(paste("data_user/04_WGCNA/04_01_B_04_permutations/RNA_biotypes_perm",i,".RData",sep=""))
+  for(mod in module_key_iso$Module_Name[-1]){
+    for(type in uniq_types){
+      if(i==1){
+        perm_dist[[mod]][[type]] <- rep(NA,5)
+        perm_dist[[mod]][[type]] <- c(perm_dist[[mod]][[type]],RNA_type_table_perm[mod,type])
+      }else if(i!=1 & i!=10000){
+        perm_dist[[mod]][[type]] <- c(perm_dist[[mod]][[type]],RNA_type_table_perm[mod,type])
+      }else if(i==10000){
+        perm_dist[[mod]][[type]] <- c(perm_dist[[mod]][[type]],RNA_type_table_perm[mod,type])
+        perm_dist[[mod]][[type]] <- perm_dist[[mod]][[type]][-c(1:5)]
+      }
+    }
+  }
+}
+
+save(perm_dist,file="data_user/04_WGCNA/04_01_B_04_BiotypePermutationResults.RData")
+
+### Examine results
+  
+biotype_perm_p = matrix(NA,nrow=length(module_key_iso$Module_Name[-1]),ncol=length(uniq_types))
+rownames(biotype_perm_p) = module_key_iso$Module_Name[-1]
+colnames(biotype_perm_p) = uniq_types
+
+for(i in c(1:length(module_key_iso$Module_Name[-1]))){
+  for(j in c(1:length(uniq_types))){
+    mod = rownames(biotype_perm_p)[i]
+    type = colnames(biotype_perm_p)[j]
+    perm_dist_iter = perm_dist[[mod]][[type]]
+    true_count = RNA_type_table_true[mod,type]
+    more=length(which(perm_dist_iter >= true_count))
+    p = (more)/10001
+    biotype_perm_p[i,j] = p
+  }
+}
+
+biotype_perm_fdr <- biotype_perm_p
+
+for(i in c(1:length(module_key_iso$Module_Name[-1]))){
+  idx = which(biotype_perm_p[i,-which(colnames(biotype_perm_p)=="protein_coding")] < 0.05)
+  if(length(idx) > 0){
+    print(rownames(biotype_perm_p)[i])
+    cat("\n")
+    print("P")
+    print(colnames(biotype_perm_p)[-which(colnames(biotype_perm_p)=="protein_coding")][idx])
+    cat("\n")
+  }
+  biotype_perm_fdr[i,] = p.adjust(biotype_perm_p[i,],method="fdr")
+  idx = which(biotype_perm_fdr[i,-which(colnames(biotype_perm_fdr)=="protein_coding")] < 0.05)
+  if(length(idx) > 0){
+    print("FDR")
+    print(colnames(biotype_perm_fdr)[-which(colnames(biotype_perm_fdr)=="protein_coding")][idx])
+    cat("\n")
+  }
+}
+
+library(reshape2)
+biotype_perm_p_melt = melt(biotype_perm_p)
+biotype_perm_fdr_melt = melt(biotype_perm_fdr)
+colnames(biotype_perm_p_melt) = c("Module","Gene_Biotype","P")
+biotype_perm_results = data.frame(cbind(biotype_perm_p_melt,biotype_perm_fdr_melt[,3]))
+colnames(biotype_perm_results)[4] = "FDR"
+
+### also test explicitly for less than expected by chance
+
+biotype_perm_p_lessPC = matrix(NA,nrow=length(module_key_iso$Module_Name[-1]),ncol=length(uniq_types))
+rownames(biotype_perm_p_lessPC) = module_key_iso$Module_Name[-1]
+colnames(biotype_perm_p_lessPC) = uniq_types
+
+for(i in c(1:length(module_key_iso$Module_Name[-1]))){
+  for(j in c(1:length(uniq_types))){
+    mod = rownames(biotype_perm_p_lessPC)[i]
+    type = colnames(biotype_perm_p_lessPC)[j]
+    perm_dist_iter = perm_dist[[mod]][[type]]
+    true_count = RNA_type_table_true[mod,type]
+    less=length(which(perm_dist_iter <= true_count))
+    p = (less)/10001
+    biotype_perm_p_lessPC[i,j] = p
+  }
+}
+
+biotype_perm_fdr_lessPC <- biotype_perm_p_lessPC
+
+for(i in c(1:length(module_key_iso$Module_Name[-1]))){
+  idx = which(biotype_perm_p_lessPC[i,] < 0.05)
+  if(length(idx) > 0){
+    print(rownames(biotype_perm_p_lessPC)[i])
+    cat("\n")
+    print("P")
+    print(colnames(biotype_perm_p_lessPC)[idx])
+    cat("\n")
+  }
+  biotype_perm_fdr_lessPC[i,] = p.adjust(biotype_perm_p_lessPC[i,],method="fdr")
+  idx = which(biotype_perm_fdr_lessPC[i,] < 0.05)
+  if(length(idx) > 0){
+    print("FDR")
+    print(colnames(biotype_perm_fdr_lessPC)[idx])
+    cat("\n")
+  }
+}
+
+PC = biotype_perm_p_lessPC[,which(colnames(biotype_perm_p_lessPC)=="protein_coding")]
+names(PC) = rownames(biotype_perm_p_lessPC)
+PC[which(PC < 0.05)]
+
+biotype_perm_p_melt = melt(biotype_perm_p_lessPC)
+biotype_perm_fdr_melt = melt(biotype_perm_fdr_lessPC)
+colnames(biotype_perm_p_melt) = c("Module","Gene_Biotype","P")
+biotype_perm_results_less = data.frame(cbind(biotype_perm_p_melt,biotype_perm_fdr_melt[,3]))
+colnames(biotype_perm_results_less)[4] = "FDR"
+
+biotype_perm_results_more = biotype_perm_results
+
+save(biotype_perm_results_more,biotype_perm_results_less,file="data_user/04_WGCNA/04_01_B_04_BiotypePermutation_SigResults.RData")
+
+## plot with ggplot2 heatmap
+ 
+pdf(file="plots/04_WGCNA/04_01_B_04_Biotype_Permutation.pdf",width=10,height=14)  
+
+  datPlot = biotype_perm_results_more
+  
+  datPlot$log10p = -log10(as.numeric(datPlot$P) + 1e-5)
+  datPlot$star = rep(NA,nrow(datPlot))
+  datPlot$star[which(datPlot$P < 0.05)] = "*"
+  datPlot$Module = factor(datPlot$Module,levels=rev(unique(datPlot$Module)))
+  
+  lab_size=16
+  text_size=16
+  
+  biotype_p <- ggplot(datPlot, aes(Gene_Biotype, Module,fill=log10p)) + 
+    geom_tile(aes(fill = log10p),colour = "grey50") + 
+    scale_fill_gradient2(low = "dodgerblue",mid="white",high = "firebrick",limits=c(-5,5)) +
+    geom_text(aes(label = star), color = "black", size = 10,vjust=0.75) +
+    xlab("") +
+    ylab("") +
+    labs(fill="Signed\nlog10(P)") +
+    theme_bw() +
+    theme(legend.title = element_text(size = lab_size),
+          legend.text = element_text(size = text_size),
+          axis.text.x = element_text(size = text_size,angle=45,hjust=1),
+          axis.text.y = element_text(size = text_size),
+          legend.position = "left",
+          legend.direction = "vertical")
+  
+  print(biotype_p)
+  
+  datPlot = biotype_perm_results_more
+  
+  datPlot$log10p = -log10(as.numeric(datPlot$FDR) + 1e-5)
+  datPlot$star = rep(NA,nrow(datPlot))
+  datPlot$star[which(datPlot$FDR < 0.05)] = "*"
+  datPlot$Module = factor(datPlot$Module,levels=rev(unique(datPlot$Module)))
+  
+  #lab_size=22
+  #text_size=22
+  
+  biotype_fdr <- ggplot(datPlot, aes(Gene_Biotype, Module,fill=log10p)) + 
+    geom_tile(aes(fill = log10p),colour = "grey50") + 
+    scale_fill_gradient2(low = "dodgerblue",mid="white",high = "firebrick",limits=c(-5,5)) +
+    geom_text(aes(label = star), color = "black", size = 10,vjust=0.75) +
+    xlab("") +
+    ylab("") +
+    labs(fill="Signed\nlog10(FDR)") +
+    theme_bw() +
+    theme(legend.title = element_text(size = lab_size),
+          legend.text = element_text(size = text_size),
+          axis.text.x = element_text(size = text_size,angle=45,hjust=1),
+          axis.text.y = element_text(size = text_size),
+          legend.position = "left",
+          legend.direction = "vertical")
+  
+  print(biotype_fdr)
+  
+  datPlot = biotype_perm_results_less
+  
+  datPlot$log10p = log10(as.numeric(datPlot$P) + 1e-5)
+  datPlot$star = rep(NA,nrow(datPlot))
+  datPlot$star[which(datPlot$P < 0.05)] = "*"
+  datPlot$Module = factor(datPlot$Module,levels=rev(unique(datPlot$Module)))
+  
+  #lab_size=22
+  #text_size=22
+  
+  biotype_p <- ggplot(datPlot, aes(Gene_Biotype, Module,fill=log10p)) + 
+    geom_tile(aes(fill = log10p),colour = "grey50") + 
+    scale_fill_gradient2(low = "dodgerblue",mid="white",high = "firebrick",limits=c(-5,5)) +
+    geom_text(aes(label = star), color = "black", size = 10,vjust=0.75) +
+    xlab("") +
+    ylab("") +
+    labs(fill="Signed\nlog10(P)") +
+    theme_bw() +
+    theme(legend.title = element_text(size = lab_size),
+          legend.text = element_text(size = text_size),
+          axis.text.x = element_text(size = text_size,angle=45,hjust=1),
+          axis.text.y = element_text(size = text_size),
+          legend.position = "left",
+          legend.direction = "vertical")
+  
+  print(biotype_p)
+  
+  datPlot = biotype_perm_results_less
+  
+  datPlot$log10p = log10(as.numeric(datPlot$FDR) + 1e-5)
+  datPlot$star = rep(NA,nrow(datPlot))
+  datPlot$star[which(datPlot$FDR < 0.05)] = "*"
+  datPlot$Module = factor(datPlot$Module,levels=rev(unique(datPlot$Module)))
+  
+  #lab_size=22
+  #text_size=22
+  
+  biotype_fdr <- ggplot(datPlot, aes(Gene_Biotype, Module,fill=log10p)) + 
+    geom_tile(aes(fill = log10p),colour = "grey50") + 
+    scale_fill_gradient2(low = "dodgerblue",mid="white",high = "firebrick",limits=c(-5,5)) +
+    geom_text(aes(label = star), color = "black", size = 10,vjust=0.75) +
+    xlab("") +
+    ylab("") +
+    labs(fill="Signed\nlog10(FDR)") +
+    theme_bw() +
+    theme(legend.title = element_text(size = lab_size),
+          legend.text = element_text(size = text_size),
+          axis.text.x = element_text(size = text_size,angle=45,hjust=1),
+          axis.text.y = element_text(size = text_size),
+          legend.position = "left",
+          legend.direction = "vertical")
+  
+  print(biotype_fdr)
+
+dev.off()
+
