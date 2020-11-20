@@ -4,7 +4,7 @@
 
 options(stringsAsFactors = FALSE)
 
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 
 library(WGCNA); library(gridExtra); library(ggplot2); library(lmtest); library(limma)
@@ -566,7 +566,7 @@ rm(list=ls())
 
 allowWGCNAThreads()
 
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 load("data_provided/04_WGCNA/04_01_B_AllProcessedData_wModelMatrix.RData") ### produced by 01_02_B_CountsProcessing.R, section 6
 load("data_provided/04_WGCNA/04_01_B_RegressedExpression.RData") ### produced by 01_02_B_CountsProcessing.R, section 8
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))

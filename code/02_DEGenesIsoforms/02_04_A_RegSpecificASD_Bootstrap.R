@@ -6,7 +6,7 @@ options(stringsAsFactors = FALSE)
 
 library(ggplot2); library(reshape2); library(gridExtra); library(grid); library(limma); library(statmod)
 
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 
 load("data_provided/02_DEGenesIsoforms/02_01_A_AllProcessedData_wModelMatrix.RData") ### produced by 01_02_A_CountsProcessing.R, section 6

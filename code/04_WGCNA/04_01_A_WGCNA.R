@@ -4,7 +4,7 @@
 
 options(stringsAsFactors = FALSE)
 
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 
 library(WGCNA); library(gridExtra); library(ggplot2); library(lmtest)
@@ -316,7 +316,7 @@ rm(list=ls())
 
 ### First, get resampled expression and metadata
 
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/data_user/04_01_A_02_data_resampled",sep=""))
 
 nSets=100 ### from resampling
@@ -359,7 +359,7 @@ save(list=ls(),file="data_user/04_WGCNA/01_01_A_02_consTOM_results/MultiData_Res
 
 rm(list=ls())
 
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 load("data_user/04_WGCNA/04_01_A_02_piecewiseTOMs/consTOMs/04_01_A_02_ConsensusTOM_final.RData")
 load("data_user/04_WGCNA/04_01_A_02_consTOM_results/MultiData_Resample.RData")
 
@@ -435,7 +435,7 @@ dev.off()
 ##### (3) Identify module associations with covariates #####
 
 rm(list=ls())
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 load("data_provided/04_WGCNA/04_01_A_AllProcessedData_wModelMatrix.RData") ### produced by 01_02_A_CountsProcessing.R, section 6
 load("data_provided/04_WGCNA/04_01_A_RegressedExpression.RData") ### produced by 01_02_A_CountsProcessing.R, section 8
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
@@ -614,7 +614,7 @@ save(assoc_table_list,file="data_user/04_WGCNA/04_01_A_03_ME_Diagnosis_by_Region
 ##### (4) Permute ME region-specific ASD effects #####
 
 rm(list=ls())
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 
 ### Run Permutation
@@ -693,7 +693,7 @@ for(iter in c(1:1000)){
 ### iter=1 is the real result
 
 rm(list=ls())
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 load("data_user/04_WGCNA/04_01_A_03_rWGCNA_consensusModules.RData")
 
@@ -725,7 +725,7 @@ save(me_reg_effect_list,file="data_user/04_WGCNA/04_01_A_04_ME_Reg_Effect_Permut
 ### (3) Test Severity
 
 rm(list=ls())
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
   
 load("data_provided/04_WGCNA/04_01_A_AllProcessedData_wModelMatrix.RData") ### produced by 01_02_A_CountsProcessing.R, section 6
@@ -840,7 +840,7 @@ rm(list=ls())
 
 allowWGCNAThreads()
 
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 load("data_provided/04_WGCNA/04_01_A_AllProcessedData_wModelMatrix.RData") ### produced by 01_02_A_CountsProcessing.R, section 6
 load("data_provided/04_WGCNA/04_01_A_RegressedExpression.RData") ### produced by 01_02_A_CountsProcessing.R, section 8
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))

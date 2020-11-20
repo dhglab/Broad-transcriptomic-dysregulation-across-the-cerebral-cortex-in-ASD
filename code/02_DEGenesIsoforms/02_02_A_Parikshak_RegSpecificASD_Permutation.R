@@ -5,7 +5,7 @@
 
 options(stringsAsFactors = FALSE)
 
-wkdir="C:/Users/jillh/Dropbox/GitHub/"
+wkdir="/path/to/my/directory"
 setwd(paste(wkdir,"Broad-transcriptomic-dysregulation-across-the-cerebral-cortex-in-ASD/",sep=""))
 
 library(WGCNA); library(ggplot2); library(reshape2); library(limma)
