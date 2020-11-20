@@ -34,3 +34,5 @@ main_datasets/B_IsoformLevel/Isoform_NormalizedExpression_TechnicalCovariatesRem
 main_datasets/B_IsoformLevel/IsoformModule_Annotation.xlsx filter=lfs diff=lfs merge=lfs -text
 main_datasets/B_IsoformLevel/RawData_IsoformCounts.RData filter=lfs diff=lfs merge=lfs -text
 main_datasets/B_IsoformLevel/Unique_IsoformModule_SummaryPlots.pdf filter=lfs diff=lfs merge=lfs -text
+main_datasets/AllGeneExpr_wMetadata_RShiny.RData filter=lfs diff=lfs merge=lfs -text
+main_datasets/AllIsoformExpr_wMetadata_RShiny.RData filter=lfs diff=lfs merge=lfs -text
