@@ -1,5 +1,10 @@
 ## Broad transcriptomic dysregulation across the cerebral cortex in ASD
-Code accompanying the manuscript.
+
+Code, data, and plots accompanying the manuscript.
+
+To visualize gene and isoform expression data across diagnoses, regions, and sex, follow this link.
+
+The 'main_datasets' directory includes main datasets and functional analysis summary plots of all gene and isoform modules.
 
 ### File Notation:
 
