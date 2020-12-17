@@ -2,7 +2,7 @@
 
 Code, data, and plots accompanying the manuscript.
 
-To visualize gene and isoform expression data across diagnoses, regions, and sex, follow this link.
+To visualize gene and isoform expression data across diagnoses, regions, and sex, follow this [link](https://gkale15.shinyapps.io/apphosted/).
 
 The 'main_datasets' directory includes main datasets and functional analysis summary plots of all gene and isoform modules.
 
